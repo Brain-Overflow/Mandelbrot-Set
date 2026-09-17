@@ -1,0 +1,58 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "CMake: configure",
+            "command": "cmake",
+            "args": [
+                "-B",
+                "build",
+                "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "-DCMAKE_BUILD_TYPE=Debug"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": "build",
+            "detail": "Generate build files with CMake + vcpkg toolchain."
+        },
+        {
+            "type": "shell",
+            "label": "CMake: build",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": "CMake: configure",
+            "detail": "Compile the project using the generated build files."
+        },
+        {
+            "type": "shell",
+            "label": "CMake: clean",
+            "command": "rm",
+            "args": [
+                "-rf",
+                "build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "group": "build",
+            "detail": "Remove the build directory entirely."
+        }
+    ],
+    "version": "2.0.0"
+}
