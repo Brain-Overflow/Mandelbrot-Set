@@ -1,58 +1,113 @@
 {
+    "version": "2.0.0",
     "tasks": [
         {
             "type": "shell",
-            "label": "CMake: configure",
+            "label": "CMake: configure (Debug)",
             "command": "cmake",
             "args": [
-                "-B",
-                "build",
+                "-B", "build-debug",
                 "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
                 "-DCMAKE_BUILD_TYPE=Debug"
             ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
             "group": "build",
-            "detail": "Generate build files with CMake + vcpkg toolchain."
+            "detail": "Generate Debug build files (asserts active)."
         },
         {
             "type": "shell",
-            "label": "CMake: build",
+            "label": "CMake: configure (Release)",
             "command": "cmake",
             "args": [
-                "--build",
-                "build"
+                "-B", "build-release",
+                "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "-DCMAKE_BUILD_TYPE=Release"
             ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": [
-                "$gcc"
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "group": "build",
+            "detail": "Generate Release build files (for benchmarking)."
+        },
+        {
+            "type": "shell",
+            "label": "Build: all (Debug)",
+            "command": "cmake",
+            "args": [ "--build", "build-debug" ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [ "$gcc" ],
+            "group": { "kind": "build", "isDefault": true },
+            "dependsOn": "CMake: configure (Debug)",
+            "detail": "Build every target in Debug."
+        },
+        {
+            "type": "shell",
+            "label": "Build: mandelbrot (Debug)",
+            "command": "cmake",
+            "args": [ "--build", "build-debug", "--target", "mandelbrot" ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [ "$gcc" ],
+            "group": "build",
+            "dependsOn": "CMake: configure (Debug)",
+            "detail": "Build only the renderer."
+        },
+        {
+            "type": "shell",
+            "label": "Build: checkerboard (Debug)",
+            "command": "cmake",
+            "args": [ "--build", "build-debug", "--target", "checkerboard" ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [ "$gcc" ],
+            "group": "build",
+            "dependsOn": "CMake: configure (Debug)",
+            "detail": "Build only the checkerboard test."
+        },
+        {
+            "type": "shell",
+            "label": "Build: all (Release)",
+            "command": "cmake",
+            "args": [ "--build", "build-release" ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [ "$gcc" ],
+            "group": "build",
+            "dependsOn": "CMake: configure (Release)",
+            "detail": "Build every target in Release — use this for timings."
+        },
+        {
+            "type": "shell",
+            "label": "Test: run all (ctest)",
+            "command": "ctest",
+            "args": [ "--test-dir", "build-debug", "--output-on-failure" ],
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "group": { "kind": "test", "isDefault": true },
+            "dependsOn": "Build: all (Debug)",
+            "detail": "Run every registered test and show output for failures."
+        },
+        {
+            "type": "shell",
+            "label": "Test: run checkerboard only",
+            "command": "ctest",
+            "args": [
+                "--test-dir", "build-debug",
+                "-R", "checkerboard",
+                "--output-on-failure"
             ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "dependsOn": "CMake: configure",
-            "detail": "Compile the project using the generated build files."
+            "options": { "cwd": "${workspaceFolder}" },
+            "problemMatcher": [],
+            "group": "test",
+            "dependsOn": "Build: checkerboard (Debug)",
+            "detail": "Run only tests matching 'checkerboard'."
         },
         {
             "type": "shell",
             "label": "CMake: clean",
             "command": "rm",
-            "args": [
-                "-rf",
-                "build"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "args": [ "-rf", "build-debug", "build-release" ],
+            "options": { "cwd": "${workspaceFolder}" },
             "problemMatcher": [],
             "group": "build",
-            "detail": "Remove the build directory entirely."
+            "detail": "Remove both build directories."
         }
-    ],
-    "version": "2.0.0"
+    ]
 }

@@ -2,13 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug main (CMake build)",
+            "name": "Debug: mandelbrot",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/mandelbrot",
+            "program": "${workspaceFolder}/build-debug/mandelbrot",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build",
+            "cwd": "${workspaceFolder}/build-debug",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -20,7 +20,28 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "CMake: build"
+            "preLaunchTask": "Build: mandelbrot (Debug)"
+        },
+        {
+            "name": "Debug: checkerboard",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build-debug/checkerboard",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build-debug",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "description": "Enable pretty-printing for gdb",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build: checkerboard (Debug)"
         }
     ]
 }
