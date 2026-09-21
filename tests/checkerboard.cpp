@@ -10,8 +10,8 @@ int main() {
 
     int cell_size = 64;
 
-    for (int y = 0; y < image_size; ++y) {
-        for (int x = 0; x < image_size; ++x) {
+    for (int y = 0; y < image.get_height(); ++y) {
+        for (int x = 0; x < image.get_width(); ++x) {
             int cell_x = x / cell_size;
             int cell_y = y / cell_size;
 
@@ -19,14 +19,14 @@ int main() {
             bool is_first_cell  = (cell_x == 0) && (cell_y == 0);
 
             if (is_first_cell) {
-                image(x, y) = Pixel{255, 0, 0};
+                image(x, y) = RED;
             }
             else {
                 if (is_light) {
-                    image(x, y) = Pixel{255, 255, 255};
+                    image(x, y) = WHITE;
                 }
                 else {
-                    image(x, y) = Pixel{0, 0, 0};
+                    image(x, y) = BLACK;
                 }
             }
         }
