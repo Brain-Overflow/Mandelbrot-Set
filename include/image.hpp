@@ -19,6 +19,16 @@ struct Pixel {
 static_assert(sizeof(Pixel) == 3, "Pixel must only be three bytes.");
 static_assert(std::is_trivially_copyable_v<Pixel>, "Pixel must be trivially copyable.");
 
+inline Pixel from_grayscale(unsigned char brightness) {
+    return Pixel{brightness, brightness, brightness};
+}
+
+inline constexpr Pixel BLACK{0, 0, 0};
+inline constexpr Pixel WHITE{255, 255, 255};
+inline constexpr Pixel RED{255, 0, 0};
+inline constexpr Pixel GREEN{0, 255, 0};
+inline constexpr Pixel BLUE{0, 0, 255};
+
 class Image {
     private:
         int width;
