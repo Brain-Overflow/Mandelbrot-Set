@@ -47,6 +47,11 @@ double median(std::vector<double> elements) {
     return elements[elements.size() / 2];
 }
 
+struct Region {
+    int x_start, x_end;
+    int y_start, y_end;
+};
+
 struct RenderParameters {
     int iteration_limit;
     double center_a;
@@ -54,28 +59,24 @@ struct RenderParameters {
     double window_width;
 };
 
-void render_mandelbrot_set(Image& image, const RenderParameters& parameters) {
-    const std::vector<Pixel> palette = create_palette(parameters.iteration_limit);
+struct View {
+    double pixel_size;
+    double left;
+    double top;
+};
 
-    int image_height = image.get_height();
-    int image_width = image.get_width();
-
-    double pixel_size = parameters.window_width / image_width;
-    double window_height = pixel_size * image_height;
-    double left = parameters.center_a - parameters.window_width / 2;
-    double top = parameters.center_b + window_height / 2;
-
-    for (int pixel_y = 0; pixel_y < image_height; ++pixel_y) {
-        for (int pixel_x = 0; pixel_x < image_width; ++pixel_x) {
-            double a = left + (static_cast<double>(pixel_x) + 0.5) * pixel_size;
-            double b = top - (static_cast<double>(pixel_y) + 0.5) * pixel_size;
+void render_mandelbrot_set_region(Image& image, const int iteration_limit, const std::vector<Pixel>& palette, const View& view, const Region region) {
+    for (int pixel_y = region.y_start; pixel_y < region.y_end; ++pixel_y) {
+        for (int pixel_x = region.x_start; pixel_x < region.x_end; ++pixel_x) {
+            double a = view.left + (static_cast<double>(pixel_x) + 0.5) * view.pixel_size;
+            double b = view.top - (static_cast<double>(pixel_y) + 0.5) * view.pixel_size;
 
             double x = 0;
             double y = 0;
 
-            int escape_iteration_count = parameters.iteration_limit;
+            int escape_iteration_count = iteration_limit;
 
-            for (int iteration_count = 0; iteration_count < parameters.iteration_limit; ++iteration_count) {
+            for (int iteration_count = 0; iteration_count < iteration_limit; ++iteration_count) {
                 double new_x = (x * x) - (y * y) + a;
                 double new_y = 2 * x * y + b;
 
@@ -94,6 +95,34 @@ void render_mandelbrot_set(Image& image, const RenderParameters& parameters) {
     }
 }
 
+void render_mandelbrot_set(Image& image, const RenderParameters& parameters, const int thread_count) {
+    const std::vector<Pixel> palette = create_palette(parameters.iteration_limit);
+
+    int image_height = image.get_height();
+    int image_width = image.get_width();
+    
+    double pixel_size = parameters.window_width / image_width;
+    double window_height = pixel_size * image_height;
+    double left = parameters.center_a - parameters.window_width / 2;
+    double top = parameters.center_b + window_height / 2;
+
+    View view{pixel_size, left, top};
+
+    std::vector<std::thread> threads;
+
+    for (int thread_index = 0; thread_index < thread_count; ++thread_index) {
+        const Region region{0, image_width, thread_index * image_height / thread_count, (thread_index + 1) * image_height / thread_count};
+
+        threads.emplace_back([&image, &parameters, &palette, &view, region] {
+            render_mandelbrot_set_region(image, parameters.iteration_limit, palette, view, region);
+        });
+    }
+
+    for (std::thread& thread : threads) {
+        thread.join();
+    }
+}
+
 int main() {
     int image_size = 2048;
 
@@ -103,10 +132,12 @@ int main() {
 
     std::vector<double> ms_results;
 
-    render_mandelbrot_set(image, parameters); // Render once before timing to warm the system up.
+    int thread_count = 2;
+
+    render_mandelbrot_set(image, parameters, thread_count); // Render once before timing to warm the system up.
 
     for (int iteration = 0; iteration < 10; ++iteration) {
-        double ms_result = stopwatch_ms([&] { render_mandelbrot_set(image, parameters); });
+        double ms_result = stopwatch_ms([&] { render_mandelbrot_set(image, parameters, thread_count); });
 
         ms_results.push_back(ms_result);
     }
@@ -123,7 +154,7 @@ int main() {
 
     std::cerr << std::format("Minimum: {:.2f} milliseconds | {:.2f} seconds\nMaximum: {:.2f} milliseconds| {:.2f} seconds\n", *min_iterator, *min_iterator / milliseconds_in_second, *max_iterator, *max_iterator / milliseconds_in_second);
   
-    std::cerr << std::format("Supported Concurrent Threads: {}\n", std::thread::hardware_concurrency());
+    std::cerr << std::format("Threads Used: {} | Supported Concurrent Threads: {}\n", thread_count, std::thread::hardware_concurrency());
 
     std::ofstream out("out.ppm", std::ios::binary);
 
