@@ -32,8 +32,8 @@ const std::vector<Pixel>& Image::get_pixels() const {
 }
 
 const Pixel& Image::operator()(int x, int y) const {
-    assertm(x >= 0 && x < width, "X coordinate is out of range.");
-    assertm(y >= 0 && y < height, "Y coordinate is out of range.");
+    ASSERTM(x >= 0 && x < width, "X coordinate is out of range.");
+    ASSERTM(y >= 0 && y < height, "Y coordinate is out of range.");
 
     return pixels[static_cast<std::size_t>(y) * width + static_cast<std::size_t>(x)];
 }

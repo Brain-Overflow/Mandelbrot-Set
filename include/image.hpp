@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <utility>
 
-#define assertm(exp, msg) assert((void(msg), exp))
+#define ASSERTM(exp, msg) assert((void(msg), exp))
 
 struct Pixel {
     unsigned char red;
@@ -19,7 +19,7 @@ struct Pixel {
 static_assert(sizeof(Pixel) == 3, "Pixel must only be three bytes.");
 static_assert(std::is_trivially_copyable_v<Pixel>, "Pixel must be trivially copyable.");
 
-inline Pixel from_grayscale(unsigned char brightness) {
+inline Pixel to_grayscale_pixel(unsigned char brightness) {
     return Pixel{brightness, brightness, brightness};
 }
 
