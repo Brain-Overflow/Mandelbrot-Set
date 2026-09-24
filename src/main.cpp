@@ -8,6 +8,8 @@
 #include "image.hpp"
 #include "ppm.hpp"
 
+const double milliseconds_in_second = 1000.0;
+
 Pixel iteration_count_to_pixel(int escape_iteration_count, int iteration_limit) {
     if (escape_iteration_count == iteration_limit) {
         return BLACK;
@@ -95,7 +97,7 @@ void render_mandelbrot_set_region(Image& image, const int iteration_limit, const
     }
 }
 
-void render_mandelbrot_set(Image& image, const RenderParameters& parameters, const int thread_count) {
+std::vector<double> render_mandelbrot_set(Image& image, const RenderParameters& parameters, const int thread_count) {
     const std::vector<Pixel> palette = create_palette(parameters.iteration_limit);
 
     int image_height = image.get_height();
@@ -110,17 +112,29 @@ void render_mandelbrot_set(Image& image, const RenderParameters& parameters, con
 
     std::vector<std::thread> threads;
 
+    std::vector<double> ms_results(static_cast<std::size_t>(thread_count));
+
     for (int thread_index = 0; thread_index < thread_count; ++thread_index) {
         const Region region{0, image_width, thread_index * image_height / thread_count, (thread_index + 1) * image_height / thread_count};
 
-        threads.emplace_back([&image, &parameters, &palette, &view, region] {
-            render_mandelbrot_set_region(image, parameters.iteration_limit, palette, view, region);
-        });
+        threads.emplace_back(
+            [&ms_results, thread_index, &image, &parameters, &palette, &view, region]
+            {
+                ms_results[thread_index] = stopwatch_ms(
+                    [&] 
+                    { 
+                        render_mandelbrot_set_region(image, parameters.iteration_limit, palette, view, region); 
+                    }
+                );
+            }
+        );
     }
 
     for (std::thread& thread : threads) {
         thread.join();
     }
+
+    return ms_results;
 }
 
 int main() {
@@ -130,31 +144,47 @@ int main() {
 
     const RenderParameters parameters{1000, -0.75, 0, 2.5};
 
-    std::vector<double> ms_results;
+    std::vector<double> render_ms_results;
+
+    std::vector<double> thread_ms_results;
 
     int thread_count = 2;
 
     render_mandelbrot_set(image, parameters, thread_count); // Render once before timing to warm the system up.
 
     for (int iteration = 0; iteration < 10; ++iteration) {
-        double ms_result = stopwatch_ms([&] { render_mandelbrot_set(image, parameters, thread_count); });
+        double ms_result = stopwatch_ms(
+            [&] 
+            { 
+                thread_ms_results = render_mandelbrot_set(image, parameters, thread_count);
+            }
+        );
 
-        ms_results.push_back(ms_result);
+        for (std::size_t result_index = 0; result_index < thread_ms_results.size(); ++result_index) {
+            std::cerr << std::format("Thread {}: {:.2f} milliseconds | {:.2f} seconds || Idle Time: {:.2f} milliseconds | {:.2f} seconds\n", 
+                result_index + 1, 
+                thread_ms_results[result_index], 
+                thread_ms_results[result_index] / milliseconds_in_second, 
+                std::abs(ms_result - thread_ms_results[result_index]), 
+                std::abs((ms_result - thread_ms_results[result_index]) / milliseconds_in_second)
+            );
+        }
+
+        std::cerr << std::format("Test {}: {:.2f} milliseconds | {:.2f} seconds\n", iteration + 1, ms_result, ms_result / milliseconds_in_second);
+        std::cerr << "---\n";
+
+        render_ms_results.push_back(ms_result);
     }
 
-    const double milliseconds_in_second = 1000.0;
+    std::cerr << std::format("Median: {:.2f} milliseconds | {:.2f} seconds\n", median(render_ms_results), median(render_ms_results) / milliseconds_in_second);
 
-    for (int result_index = 0; result_index < ms_results.size(); ++result_index) {
-        std::cerr << std::format("Test {}: {:.2f} milliseconds | {:.2f} seconds\n", result_index + 1, ms_results[result_index], ms_results[result_index] / milliseconds_in_second);
-    }
-
-    std::cerr << std::format("Median: {:.2f} milliseconds | {:.2f} seconds\n", median(ms_results), median(ms_results) / milliseconds_in_second);
-
-    auto [min_iterator, max_iterator] = std::minmax_element(ms_results.begin(), ms_results.end());
+    auto [min_iterator, max_iterator] = std::minmax_element(render_ms_results.begin(), render_ms_results.end());
 
     std::cerr << std::format("Minimum: {:.2f} milliseconds | {:.2f} seconds\nMaximum: {:.2f} milliseconds| {:.2f} seconds\n", *min_iterator, *min_iterator / milliseconds_in_second, *max_iterator, *max_iterator / milliseconds_in_second);
   
-    std::cerr << std::format("Threads Used: {} | Supported Concurrent Threads: {}\n", thread_count, std::thread::hardware_concurrency());
+    std::cerr << "---\n";
+
+    std::cerr << std::format("Threads Used: {} | Supported Concurrent Threads: {}\n\n", thread_count, std::thread::hardware_concurrency());
 
     std::ofstream out("out.ppm", std::ios::binary);
 
